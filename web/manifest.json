@@ -1,6 +1,6 @@
 {
-    "name": "lab_booking",
-    "short_name": "lab_booking",
+    "name": "myapp",
+    "short_name": "myapp",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,4 +1,4 @@
-# lab_booking
+# myapp
 
 A new Flutter project.
 

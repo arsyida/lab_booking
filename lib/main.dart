@@ -8,7 +8,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,22 +16,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage( title : "Home Page"),
+      home: const MyHomePage(title: "Home Page"),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -50,17 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('JADWAL PENGGUNAAN LAB KOMPUTER PTI'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-          )
-        ],
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -77,6 +57,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      LabSchedulePage(selectedDate: selectedDay),
+                ),
+              );
             },
             calendarFormat: _calendarFormat,
             onFormatChanged: (format) {
@@ -94,7 +82,9 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => BookingFormPage()),
+            MaterialPageRoute(
+                builder: (context) =>
+                    BookingFormPage(selectedDate: _focusedDay)),
           );
         },
         backgroundColor: Colors.blue,
@@ -104,17 +94,61 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+class LabSchedulePage extends StatelessWidget {
+  final DateTime selectedDate;
+
+  const LabSchedulePage({super.key, required this.selectedDate});
 
   @override
   Widget build(BuildContext context) {
+    final List<String> labSchedules = [
+      '08:00 - 09:00: Lab A - Pemrograman Dasar',
+      '10:00 - 11:00: Lab B - Jaringan Komputer',
+      '13:00 - 14:00: Lab A - Basis Data',
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil Pengguna'),
+        title: Text('Jadwal Pemakaian ${selectedDate.toLocal()}'.split(' ')[0]),
       ),
-      body: const Center(
-        child: Text('Ini adalah halaman profil.'),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jadwal pemakaian lab:',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            labSchedules.isNotEmpty
+                ? ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: labSchedules.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        leading: const Icon(Icons.access_time),
+                        title: Text(labSchedules[index]),
+                      );
+                    },
+                  )
+                : const Text('Tidak ada jadwal pemakaian untuk tanggal ini.'),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingFormPage(
+                selectedDate: selectedDate,
+              ),
+            ),
+          );
+        },
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -123,15 +157,21 @@ class ProfilePage extends StatelessWidget {
 class BookingFormPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _labController = TextEditingController();
+  final TextEditingController _angkatanController = TextEditingController();
+  final TextEditingController _kegiatanController = TextEditingController();
+  final TextEditingController _teleponController = TextEditingController();
+  final TextEditingController _mulaiController = TextEditingController();
+  final TextEditingController _selesaiController = TextEditingController();
+  final TextEditingController _dosenController = TextEditingController();
+  final DateTime selectedDate;
 
-  BookingFormPage({super.key});
+  BookingFormPage({super.key, required this.selectedDate});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Form Booking Lab'),
+        title: const Text('Form Booking Laboratorium Komputer PTI'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -141,31 +181,88 @@ class BookingFormPage extends StatelessWidget {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nama Pemesan'),
+                decoration: const InputDecoration(labelText: 'Nama'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Harap masukkan nama';
+                    return 'Wajib di isi';
                   }
                   return null;
                 },
               ),
               TextFormField(
-                controller: _labController,
-                decoration: const InputDecoration(labelText: 'Nama Lab'),
+                controller: _angkatanController,
+                decoration: const InputDecoration(labelText: 'Angkatan'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Harap masukkan nama lab';
+                    return 'Wajib di isi';
                   }
                   return null;
                 },
+              ),
+              TextFormField(
+                controller: _kegiatanController,
+                decoration: const InputDecoration(labelText: 'Kegiatan'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _teleponController,
+                decoration: const InputDecoration(labelText: 'Telepon'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _mulaiController,
+                decoration: const InputDecoration(labelText: 'Waktu Mulai'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _selesaiController,
+                decoration: const InputDecoration(labelText: 'Waktu Selesai'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _dosenController,
+                decoration: const InputDecoration(labelText: 'Dosen Pengampu'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Tanggal Booking: ${selectedDate.toLocal()}'.split(' ')[0],
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Proses booking...')),
+                      const SnackBar(
+                          content: Text('Booking berhasil ditambahkan!')),
                     );
+                    Navigator.pop(context);
                   }
                 },
                 child: const Text('Submit'),
