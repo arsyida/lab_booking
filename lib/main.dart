@@ -31,7 +31,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
@@ -39,13 +38,28 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('JADWAL PENGGUNAAN LAB KOMPUTER PTI'),
-        centerTitle: true,
+        title: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'JADWAL PENGGUNAAN',
+              textAlign: TextAlign.center, // Center the text in the Text widget
+            ),
+            Text(
+              'LAB KOMPUTER PTI',
+              textAlign: TextAlign.center, // Center the text in the Text widget
+            ),
+          ],
+        ),
+        centerTitle: true, // Center the title within the AppBar
       ),
       body: Column(
         children: [
           const SizedBox(height: 20),
           TableCalendar(
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+            },
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
@@ -66,16 +80,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               );
             },
-            calendarFormat: _calendarFormat,
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
+            calendarFormat: CalendarFormat.month,
             onPageChanged: (focusedDay) {
               _focusedDay = focusedDay;
             },
-          ),
+            headerStyle: const HeaderStyle(
+              titleCentered: true,
+            ),
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -87,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     BookingFormPage(selectedDate: _focusedDay)),
           );
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: Color.fromRGBO(159, 168, 218, 1),
         child: const Icon(Icons.add),
       ),
     );
@@ -147,7 +159,7 @@ class LabSchedulePage extends StatelessWidget {
             ),
           );
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: Color.fromRGBO(159, 168, 218, 1),
         child: const Icon(Icons.add),
       ),
     );
