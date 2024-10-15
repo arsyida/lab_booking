@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -107,22 +109,57 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class LabSchedulePage extends StatelessWidget {
+class LabSchedulePage extends StatefulWidget {
   final DateTime selectedDate;
 
   const LabSchedulePage({super.key, required this.selectedDate});
 
   @override
-  Widget build(BuildContext context) {
-    final List<String> labSchedules = [
-      '08:00 - 09:00: Lab A - Pemrograman Dasar',
-      '10:00 - 11:00: Lab B - Jaringan Komputer',
-      '13:00 - 14:00: Lab A - Basis Data',
-    ];
+  _LabSchedulePageState createState() => _LabSchedulePageState();
+}
 
+class _LabSchedulePageState extends State<LabSchedulePage> {
+  List<String> labSchedules = [];
+  bool isLoading = true;
+  bool hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLabSchedules();
+  }
+
+  // Fetch lab schedules from API
+  Future<void> fetchLabSchedules() async {
+    try {
+      // Assuming the API URL returns schedules based on the selected date
+      final response =
+          await http.get(Uri.parse('https://labooking.vercel.app/schedules'));
+      if (response.statusCode == 200) {
+        // Parse the JSON data
+        final data = json.decode(response.body);
+        setState(() {
+          labSchedules = List<String>.from(
+              data['schedules']); // Assuming 'schedules' is a list of strings
+          isLoading = false;
+          print(labSchedules);
+        });
+      } else {
+        throw Exception('Failed to load schedules');
+      }
+    } catch (error) {
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Jadwal Pemakaian Lab'),
+        title: const Text('Jadwal Pemakaian Lab'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -130,22 +167,29 @@ class LabSchedulePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Jadwal Pemakaian ${DateFormat('dd-MM-yyyy').format(selectedDate)}',
+              'Jadwal Pemakaian ${DateFormat('dd-MM-yyyy').format(widget.selectedDate)}',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
-            labSchedules.isNotEmpty
-                ? ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: labSchedules.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        leading: const Icon(Icons.access_time),
-                        title: Text(labSchedules[index]),
-                      );
-                    },
-                  )
-                : const Text('Tidak ada jadwal pemakaian untuk tanggal ini.'),
+            // Show loading spinner or data
+            isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : hasError
+                    ? const Center(child: Text('Failed to load schedules.'))
+                    : labSchedules.isNotEmpty
+                        ? Expanded(
+                            child: ListView.builder(
+                              itemCount: labSchedules.length,
+                              itemBuilder: (context, index) {
+                                return ListTile(
+                                  leading: const Icon(Icons.access_time),
+                                  title: Text(labSchedules[index]),
+                                );
+                              },
+                            ),
+                          )
+                        : const Text(
+                            'Tidak ada jadwal pemakaian untuk tanggal ini.'),
           ],
         ),
       ),
@@ -154,20 +198,28 @@ class LabSchedulePage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => BookingFormPage(
-                selectedDate: selectedDate,
-              ),
+              builder: (context) =>
+                  BookingFormPage(selectedDate: widget.selectedDate),
             ),
           );
         },
-        backgroundColor: Color.fromRGBO(159, 168, 218, 1),
+        backgroundColor: const Color.fromRGBO(159, 168, 218, 1),
         child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class BookingFormPage extends StatelessWidget {
+class BookingFormPage extends StatefulWidget {
+  final DateTime selectedDate;
+
+  const BookingFormPage({super.key, required this.selectedDate});
+
+  @override
+  _BookingFormPageState createState() => _BookingFormPageState();
+}
+
+class _BookingFormPageState extends State<BookingFormPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _angkatanController = TextEditingController();
@@ -176,9 +228,28 @@ class BookingFormPage extends StatelessWidget {
   final TextEditingController _mulaiController = TextEditingController();
   final TextEditingController _selesaiController = TextEditingController();
   final TextEditingController _dosenController = TextEditingController();
-  final DateTime selectedDate;
 
-  BookingFormPage({super.key, required this.selectedDate});
+  Future<void> _selectTime(TextEditingController controller) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      final DateTime now = DateTime.now();
+      final DateTime fullPickedTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+      final String formattedTime = DateFormat('HH:mm').format(fullPickedTime);
+      setState(() {
+        controller.text = formattedTime;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +284,30 @@ class BookingFormPage extends StatelessWidget {
                 },
               ),
               TextFormField(
+                controller: _mulaiController,
+                decoration: const InputDecoration(labelText: 'Waktu Mulai'),
+                readOnly: true,
+                onTap: () => _selectTime(_mulaiController),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _selesaiController,
+                decoration: const InputDecoration(labelText: 'Waktu Selesai'),
+                readOnly: true,
+                onTap: () => _selectTime(_selesaiController),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Wajib di isi';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
                 controller: _kegiatanController,
                 decoration: const InputDecoration(labelText: 'Kegiatan'),
                 validator: (value) {
@@ -225,26 +320,7 @@ class BookingFormPage extends StatelessWidget {
               TextFormField(
                 controller: _teleponController,
                 decoration: const InputDecoration(labelText: 'Telepon'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Wajib di isi';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _mulaiController,
-                decoration: const InputDecoration(labelText: 'Waktu Mulai'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Wajib di isi';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _selesaiController,
-                decoration: const InputDecoration(labelText: 'Waktu Selesai'),
+                keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Wajib di isi';
@@ -264,7 +340,7 @@ class BookingFormPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Tanggal Booking: ${selectedDate.toLocal()}'.split(' ')[0],
+                'Tanggal Booking: ${DateFormat('dd-MM-yyyy').format(widget.selectedDate)}',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 20),
