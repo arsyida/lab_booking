@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 void main() {
@@ -121,7 +122,7 @@ class LabSchedulePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Jadwal Pemakaian ${selectedDate.toLocal()}'.split(' ')[0]),
+        title: Text('Jadwal Pemakaian Lab'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -129,8 +130,8 @@ class LabSchedulePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Jadwal pemakaian lab:',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Jadwal Pemakaian ${DateFormat('dd-MM-yyyy').format(selectedDate)}',
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
             labSchedules.isNotEmpty
