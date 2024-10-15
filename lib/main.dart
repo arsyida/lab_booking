@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:myapp/schedule_mode.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -119,7 +120,8 @@ class LabSchedulePage extends StatefulWidget {
 }
 
 class _LabSchedulePageState extends State<LabSchedulePage> {
-  List<String> labSchedules = [];
+  List<Schedule> labSchedules = [];
+  List<Schedule> filteredSchedules = [];
   bool isLoading = true;
   bool hasError = false;
 
@@ -132,17 +134,17 @@ class _LabSchedulePageState extends State<LabSchedulePage> {
   // Fetch lab schedules from API
   Future<void> fetchLabSchedules() async {
     try {
-      // Assuming the API URL returns schedules based on the selected date
-      final response =
-          await http.get(Uri.parse('https://labooking.vercel.app/schedules'));
+      final response = await http
+          .get(Uri.parse('https://api-labooking.vercel.app/schedules'));
       if (response.statusCode == 200) {
-        // Parse the JSON data
-        final data = json.decode(response.body);
+        final List<dynamic> data = json.decode(response.body);
+
+        // Map the JSON response to a List of Schedule objects
         setState(() {
-          labSchedules = List<String>.from(
-              data['schedules']); // Assuming 'schedules' is a list of strings
+          labSchedules = data.map((json) => Schedule.fromJson(json)).toList();
+          // Filter the schedules based on the selected date
+          filterSchedulesBySelectedDate();
           isLoading = false;
-          print(labSchedules);
         });
       } else {
         throw Exception('Failed to load schedules');
@@ -153,6 +155,26 @@ class _LabSchedulePageState extends State<LabSchedulePage> {
         isLoading = false;
       });
     }
+  }
+
+  // Filter schedules based on the selected date
+  void filterSchedulesBySelectedDate() {
+    filteredSchedules = labSchedules.where((schedule) {
+      final scheduleDate = DateTime(
+        schedule.start.year,
+        schedule.start.month,
+        schedule.start.day,
+      );
+
+      final selectedDateOnly = DateTime(
+        widget.selectedDate.year,
+        widget.selectedDate.month,
+        widget.selectedDate.day,
+      );
+
+      // Check if the date of the schedule matches the selected date
+      return scheduleDate == selectedDateOnly;
+    }).toList();
   }
 
   @override
@@ -176,14 +198,18 @@ class _LabSchedulePageState extends State<LabSchedulePage> {
                 ? const Center(child: CircularProgressIndicator())
                 : hasError
                     ? const Center(child: Text('Failed to load schedules.'))
-                    : labSchedules.isNotEmpty
+                    : filteredSchedules.isNotEmpty
                         ? Expanded(
                             child: ListView.builder(
-                              itemCount: labSchedules.length,
+                              itemCount: filteredSchedules.length,
                               itemBuilder: (context, index) {
+                                final schedule = filteredSchedules[index];
                                 return ListTile(
                                   leading: const Icon(Icons.access_time),
-                                  title: Text(labSchedules[index]),
+                                  title: Text(schedule.title),
+                                  subtitle: Text(
+                                    'Start: ${DateFormat('dd-MM-yyyy HH:mm').format(schedule.start)}\nEnd: ${DateFormat('dd-MM-yyyy HH:mm').format(schedule.end)}',
+                                  ),
                                 );
                               },
                             ),
